@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Container, Row, Col, Nav, Tab, Card, Table, Badge, Button, Form, Alert, Modal, Tabs } from 'react-bootstrap';
+import { Container, Row, Col, Nav, Tab, Card, Table, Badge, Button, Form, Alert, Modal, Tabs, Spinner } from 'react-bootstrap';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import './AdminDashboard.css';
 
 // Function to set auth token
 const setAuthToken = (token) => {
@@ -14,59 +15,47 @@ const setAuthToken = (token) => {
   }
 };
 
-const AdminDashboard = () => {
+const AdminDashboard = ({ activeTab: initialActiveTab }) => {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState(initialActiveTab || 'users');
   const [showModal, setShowModal] = useState(false);
   const [modalData, setModalData] = useState(null);
   const [filterUserType, setFilterUserType] = useState('all');
+  const [filterProductStatus, setFilterProductStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [assignHelperModal, setAssignHelperModal] = useState(false);
   const [selectedFarmer, setSelectedFarmer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [commodityToReject, setCommodityToReject] = useState(null);
   
   // State for users and other data
   const [users, setUsers] = useState([]);
-  const [products, setProducts] = useState([
-    // Sample product data
-    {
-      id: 1,
-      name: 'Sample Product',
-      farmer: 'John Farmer',
-      type: 'Vegetable',
-      quantity: '100 kg',
-      price: '$50',
-      status: 'pending',
-      submittedDate: '2023-04-15'
-    }
+  const [products, setProducts] = useState([]);
+  const [bids, setBids] = useState([]);
+  const [assignments, setAssignments] = useState([]);
+  const [documents, setDocuments] = useState([
+    { id: 1, name: 'Farmer Guidelines.pdf', type: 'PDF', size: '2.4 MB', uploadedBy: 'Admin', date: '2023-05-15', category: 'guidelines' },
+    { id: 2, name: 'Quality Standards.docx', type: 'Word', size: '1.8 MB', uploadedBy: 'Admin', date: '2023-06-22', category: 'standards' },
+    { id: 3, name: 'Market Analysis Report.xlsx', type: 'Excel', size: '3.2 MB', uploadedBy: 'Admin', date: '2023-07-10', category: 'reports' },
+    { id: 4, name: 'Organic Certification Process.pdf', type: 'PDF', size: '4.1 MB', uploadedBy: 'Admin', date: '2023-08-05', category: 'certification' },
+    { id: 5, name: 'Commodity Pricing Guide.pdf', type: 'PDF', size: '1.5 MB', uploadedBy: 'Admin', date: '2023-09-18', category: 'pricing' }
   ]);
-  const [bids, setBids] = useState([
-    // Sample bid data
-    {
-      id: 1,
-      product: 'Sample Product',
-      farmer: 'John Farmer',
-      buyer: 'Alice Buyer',
-      bidAmount: '$45',
-      quantity: '50 kg',
-      status: 'pending',
-      date: '2023-04-16'
-    }
+  const [documentCategories] = useState([
+    'All', 'Guidelines', 'Standards', 'Reports', 'Certification', 'Pricing', 'Other'
   ]);
-  const [assignments, setAssignments] = useState([
-    // Sample assignment data
-    {
-      id: 1,
-      farmer: 'John Farmer',
-      helper: 'Bob Helper',
-      task: 'Harvesting',
-      status: 'active',
-      startDate: '2023-04-17',
-      endDate: '2023-04-25'
-    }
-  ]);
+  const [selectedDocCategory, setSelectedDocCategory] = useState('All');
+  const [documentSearchTerm, setDocumentSearchTerm] = useState('');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [newDocument, setNewDocument] = useState({
+    name: '',
+    category: 'guidelines',
+    file: null
+  });
   
   // Check if user is an admin
   const isAdmin = user && user.isAdmin;
@@ -80,49 +69,115 @@ const AdminDashboard = () => {
 
   // Set auth token when component mounts
   useEffect(() => {
+    // Debug user data
+    console.log("AdminDashboard - User data:", user);
+    console.log("AdminDashboard - localStorage token:", localStorage.getItem('token'));
+    console.log("AdminDashboard - localStorage user:", localStorage.getItem('user'));
+    
     const token = localStorage.getItem('token');
     if (token) {
       setAuthToken(token);
     }
+    
+    fetchUsers();
+    fetchCommodities();
+    
+    // Clean up function
+    return () => {
+      setAuthToken(null);
+    };
   }, []);
 
   // Fetch users from the database
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      setError(null);
-      
       const response = await api.get('/api/admin/users');
-      
-      // Check if we have a valid response with data
-      if (response && response.data) {
-        // Validate user data before setting it
-        const validUsers = response.data.filter(user => {
-          // Check if each user has the required properties
-          return user && typeof user === 'object' && user._id;
-        });
-        
-        console.log('Valid users:', validUsers.length);
-        setUsers(validUsers);
-      } else {
-        throw new Error('No data received from server');
+      if (response.status === 200) {
+        setUsers(response.data);
       }
     } catch (err) {
       console.error('Error fetching users:', err);
-      
-      if (err.response?.status === 401) {
-        setError('Authentication error. Please log in again.');
-        // Redirect to login page after a short delay
-        setTimeout(() => navigate('/login'), 2000);
-      } else if (err.response?.status === 403) {
-        setError('You do not have permission to access this page.');
-        // Redirect to home page after a short delay
-        setTimeout(() => navigate('/home'), 2000);
-      } else {
-        setError('Failed to fetch users: ' + (err.response?.data?.message || err.message));
-      }
+      setError(err.response?.data?.message || 'Failed to fetch users');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch commodities from the database
+  const fetchCommodities = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/api/admin/commodities');
+      if (response.status === 200) {
+        setProducts(response.data);
+      }
+    } catch (err) {
+      console.error('Error fetching commodities:', err);
+      setError(err.response?.data?.message || 'Failed to fetch commodities');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update commodity status
+  const handleCommodityAction = async (commodityId, newStatus, rejectionReason = '') => {
+    try {
+      setLoading(true);
+      const data = { 
+        status: newStatus
+      };
+      
+      // Add rejection reason if provided
+      if (newStatus === 'rejected' && rejectionReason) {
+        data.rejectionReason = rejectionReason;
+      }
+      
+      const response = await api.patch(`/api/admin/commodities/${commodityId}/status`, data);
+      
+      if (response.status === 200) {
+        // Update products array with the updated commodity
+        setProducts(prevProducts => 
+          prevProducts.map(product => 
+            product._id === commodityId 
+              ? { ...product, status: newStatus, ...(newStatus === 'rejected' ? { rejectionReason } : {}) } 
+              : product
+          )
+        );
+        
+        // Update modal data if this is the currently viewed commodity
+        if (modalData && modalData._id === commodityId) {
+          setModalData(prev => ({ 
+            ...prev, 
+            status: newStatus,
+            ...(newStatus === 'rejected' ? { rejectionReason } : {})
+          }));
+        }
+        
+        // Close modal if present
+        setShowModal(false);
+      } else {
+        setError('Failed to update commodity status');
+      }
+    } catch (err) {
+      console.error('Error updating commodity status:', err);
+      setError(err.response?.data?.message || 'Failed to update commodity status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle reject button click
+  const handleRejectClick = (commodity) => {
+    setCommodityToReject(commodity);
+    setRejectionReason('');
+    setShowRejectionModal(true);
+  };
+
+  // Handle confirm rejection
+  const handleConfirmReject = () => {
+    if (commodityToReject && rejectionReason.trim()) {
+      handleCommodityAction(commodityToReject._id, 'rejected', rejectionReason);
     }
   };
 
@@ -152,22 +207,12 @@ const AdminDashboard = () => {
     }
   };
 
-  // Load data when component mounts
-  useEffect(() => {
-    if (isAdmin) {
-      fetchUsers();
-    }
-  }, [isAdmin]);
-
   if (!isAdmin) {
     return (
-      <Container className="py-5 text-center">
+      <Container className="py-5">
         <Alert variant="danger">
-          <h4>Access Denied</h4>
-          <p>Only administrators can access this dashboard.</p>
-          <Button onClick={() => navigate('/home')} variant="primary">
-            Back to Home
-          </Button>
+          <Alert.Heading>Access Denied</Alert.Heading>
+          <p>You do not have admin permissions to view this page.</p>
         </Alert>
       </Container>
     );
@@ -186,6 +231,27 @@ const AdminDashboard = () => {
     return matchesSearch && matchesFilter;
   });
 
+  // Filter products based on search term and status
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = !searchTerm || (
+      product.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.commodityType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.farmer?.name && product.farmer.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+    
+    const matchesFilter = filterProductStatus === 'all' || product.status === filterProductStatus;
+    
+    return matchesSearch && matchesFilter;
+  });
+
+  // Filter documents based on category and search term
+  const filteredDocuments = documents.filter(doc => {
+    const matchesCategory = selectedDocCategory === 'All' || 
+                           doc.category.toLowerCase() === selectedDocCategory.toLowerCase();
+    const matchesSearch = doc.name.toLowerCase().includes(documentSearchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
   // View user details
   const viewUserDetails = (user) => {
     // Validate user object before setting it
@@ -194,6 +260,16 @@ const AdminDashboard = () => {
       setShowModal(true);
     } else {
       setError('Invalid user data. Cannot display details.');
+    }
+  };
+
+  // View product details
+  const viewProductDetails = (product) => {
+    if (product && typeof product === 'object' && product._id) {
+      setModalData(product);
+      setShowModal(true);
+    } else {
+      setError('Invalid product data. Cannot display details.');
     }
   };
 
@@ -214,528 +290,698 @@ const AdminDashboard = () => {
     setBids(updatedBids);
   };
 
+  // Handle document upload
+  const handleDocumentUpload = () => {
+    if (!newDocument.name || !newDocument.file) {
+      setError('Please provide a document name and file');
+      return;
+    }
+    
+    // In a real app, you would upload the file to a server
+    // For this mock, we'll just add it to the state
+    const newDoc = {
+      id: documents.length + 1,
+      name: newDocument.name,
+      type: newDocument.file.name.split('.').pop().toUpperCase(),
+      size: `${(newDocument.file.size / (1024 * 1024)).toFixed(1)} MB`,
+      uploadedBy: user.name,
+      date: new Date().toISOString().split('T')[0],
+      category: newDocument.category
+    };
+    
+    setDocuments([...documents, newDoc]);
+    setNewDocument({ name: '', category: 'guidelines', file: null });
+    setShowUploadModal(false);
+  };
+  
+  // Handle document delete
+  const handleDeleteDocument = (docId) => {
+    if (window.confirm('Are you sure you want to delete this document?')) {
+      setDocuments(documents.filter(doc => doc.id !== docId));
+    }
+  };
+  
+  // Handle document download
+  const handleDocumentDownload = (doc) => {
+    // In a real application, this would be an API call to download the actual file
+    // For demo purposes, we'll create a mock download using Blob
+    
+    try {
+      // Mock document content based on type
+      let content = '';
+      let mimeType = '';
+      
+      switch(doc.type.toLowerCase()) {
+        case 'pdf':
+          content = 'Mock PDF content for ' + doc.name;
+          mimeType = 'application/pdf';
+          break;
+        case 'doc':
+        case 'docx':
+        case 'word':
+          content = 'Mock Word document content for ' + doc.name;
+          mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          break;
+        case 'xls':
+        case 'xlsx':
+        case 'excel':
+          content = 'Mock Excel content for ' + doc.name;
+          mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          break;
+        default:
+          content = 'Mock text content for ' + doc.name;
+          mimeType = 'text/plain';
+      }
+      
+      // Create blob and download link
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      
+      // Create temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = doc.name;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(link);
+      }, 100);
+      
+      // Show success message
+      setSuccessMessage(`Document "${doc.name}" downloaded successfully`);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+      
+    } catch (error) {
+      setError('Error downloading document: ' + error.message);
+      console.error('Download error:', error);
+    }
+  };
+  
+  // Get icon for document based on type
+  const getDocumentIcon = (type) => {
+    switch (type.toLowerCase()) {
+      case 'pdf':
+        return <i className="fas fa-file-pdf text-danger"></i>;
+      case 'word':
+      case 'doc':
+      case 'docx':
+        return <i className="fas fa-file-word text-primary"></i>;
+      case 'excel':
+      case 'xlsx':
+      case 'xls':
+        return <i className="fas fa-file-excel text-success"></i>;
+      case 'image':
+      case 'jpg':
+      case 'png':
+        return <i className="fas fa-file-image text-info"></i>;
+      default:
+        return <i className="fas fa-file text-secondary"></i>;
+    }
+  };
+
   return (
-    <div className="admin-dashboard">
-      <Container fluid className="py-4">
-        {error && (
-          <Alert variant="danger" onClose={() => setError(null)} dismissible>
-            {error}
-          </Alert>
-        )}
-        
-        <Row>
-          {/* Sidebar */}
-          <Col lg={3} xl={2} className="mb-4">
-            <Card className="border-0 shadow-sm">
-              <Card.Body className="p-0">
-                <h5 className="p-3 bg-primary text-white mb-0">Admin Controls</h5>
-                <Nav className="flex-column" variant="pills" activeKey={activeTab} onSelect={setActiveTab}>
-                  <Nav.Item>
-                    <Nav.Link eventKey="users" className="rounded-0 border-bottom px-3 py-3">
-                      <i className="bi bi-people me-2"></i>
-                      User Management
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link eventKey="products" className="rounded-0 border-bottom px-3 py-3">
-                      <i className="bi bi-box me-2"></i>
-                      Product Management
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link eventKey="bids" className="rounded-0 border-bottom px-3 py-3">
-                      <i className="bi bi-cash-stack me-2"></i>
-                      Bid Management
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link eventKey="assignments" className="rounded-0 px-3 py-3">
-                      <i className="bi bi-person-check me-2"></i>
-                      Helper Assignments
-                    </Nav.Link>
-                  </Nav.Item>
-                </Nav>
-              </Card.Body>
-            </Card>
-            
-            <motion.div 
-              className="mt-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <Card className="border-0 shadow-sm bg-success text-white">
-                <Card.Body>
-                  <h5 className="mb-3">Admin Statistics</h5>
-                  <div className="d-flex justify-content-between mb-2">
-                    <span>Total Users:</span>
-                    <span className="fw-bold">{users.length}</span>
-                  </div>
-                  <div className="d-flex justify-content-between mb-2">
-                    <span>Farmers:</span>
-                    <span className="fw-bold">{users.filter(u => u.userType === 'farmer').length}</span>
-                  </div>
-                  <div className="d-flex justify-content-between mb-2">
-                    <span>Buyers:</span>
-                    <span className="fw-bold">{users.filter(u => u.userType === 'buyer').length}</span>
-                  </div>
-                  <div className="d-flex justify-content-between">
-                    <span>Helpers:</span>
-                    <span className="fw-bold">{users.filter(u => u.userType === 'helper').length}</span>
-                  </div>
-                </Card.Body>
-              </Card>
-            </motion.div>
-          </Col>
-          
-          {/* Main Content */}
-          <Col lg={9} xl={10}>
-            <Card className="border-0 shadow-sm">
-              <Card.Body>
-                <Tab.Content>
-                  {/* Users Tab */}
-                  <Tab.Pane eventKey="users" active={activeTab === 'users'}>
-                    <div className="d-flex justify-content-between align-items-center mb-4">
-                      <h4 className="mb-0">User Management</h4>
-                      <Form.Group className="d-flex">
-                        <Form.Control
-                          type="text"
-                          placeholder="Search users..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="me-2"
-                          style={{ width: '200px' }}
-                        />
-                        <Form.Select 
-                          value={filterUserType}
-                          onChange={(e) => setFilterUserType(e.target.value)}
-                          style={{ width: '150px' }}
-                        >
-                          <option value="all">All Users</option>
-                          <option value="farmer">Farmers</option>
-                          <option value="buyer">Buyers</option>
-                          <option value="helper">Helpers</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </div>
-                    
-                    {loading ? (
-                      <div className="text-center py-5">
-                        <div className="spinner-border text-primary" role="status">
-                          <span className="visually-hidden">Loading...</span>
-                        </div>
-                      </div>
+    <Container fluid className="py-4">
+      <Row>
+        <Col>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h1 className="mb-4">Admin Dashboard</h1>
+          </motion.div>
+        </Col>
+      </Row>
+
+      <Tabs
+        activeKey={activeTab}
+        onSelect={k => setActiveTab(k)}
+        className="mb-4"
+      >
+        {/* Users Tab */}
+        <Tab eventKey="users" title={<span><i className="fas fa-users me-2"></i>Users</span>}>
+          <div className="tab-content p-3">
+            <h2>User Management</h2>
+            <div className="mb-3 d-flex flex-wrap gap-2 align-items-center">
+              <Form.Control 
+                type="text" 
+                placeholder="Search users..." 
+                className="w-auto flex-grow-1" 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+              <Form.Select 
+                className="w-auto" 
+                value={filterUserType}
+                onChange={e => setFilterUserType(e.target.value)}
+              >
+                <option value="all">All Users</option>
+                <option value="farmer">Farmers</option>
+                <option value="buyer">Buyers</option>
+                <option value="helper">Helpers</option>
+              </Form.Select>
+            </div>
+
+            {loading ? (
+              <div className="text-center mt-5">
+                <Spinner animation="border" />
+              </div>
+            ) : (
+              <div className="table-responsive">
+                <Table hover responsive className="table-sm">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                      <th>Location</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.length > 0 ? (
+                      filteredUsers.map(user => (
+                        <tr key={user._id}>
+                          <td>{user.name}</td>
+                          <td>{user.email}</td>
+                          <td>
+                            <span className={`status-${user.userType}`}>
+                              {user.userType}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`status-${user.status}`}>
+                              {user.status}
+                            </span>
+                          </td>
+                          <td>
+                            {user.location?.address || 'N/A'}
+                          </td>
+                          <td>
+                            <Button
+                              variant="outline-info"
+                              size="sm"
+                              className="me-1"
+                              onClick={() => viewUserDetails(user)}
+                            >
+                              <i className="fas fa-eye"></i> View
+                            </Button>
+                            <Button
+                              variant={user.status === 'active' ? 'outline-warning' : 'outline-success'}
+                              size="sm"
+                              className="me-1"
+                              onClick={() => updateUserStatus(user._id, user.status === 'active' ? 'inactive' : 'active')}
+                            >
+                              {user.status === 'active' ? 'Deactivate' : 'Activate'}
+                            </Button>
+                            <Button
+                              variant="outline-danger"
+                              size="sm"
+                              onClick={() => deleteUser(user._id)}
+                            >
+                              <i className="fas fa-trash"></i> Delete
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
                     ) : (
-                      <Table responsive hover>
-                        <thead className="bg-light">
-                          <tr>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Type</th>
-                            <th>Status</th>
-                            <th>Location</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredUsers && filteredUsers.length > 0 ? (
-                            filteredUsers.map(user => {
-                              if (!user) return null;
-                              return (
-                                <tr key={user._id || Math.random().toString()}>
-                                  <td>{user.name || 'N/A'}</td>
-                                  <td>{user.email || 'N/A'}</td>
-                                  <td>
-                                    <Badge bg={
-                                      user.userType === 'farmer' ? 'success' :
-                                      user.userType === 'buyer' ? 'primary' :
-                                      'info'
-                                    }>
-                                      {user.userType || 'unknown'}
-                                    </Badge>
-                                  </td>
-                                  <td>
-                                    <Badge bg={
-                                      user.status === 'active' ? 'success' :
-                                      user.status === 'inactive' ? 'danger' :
-                                      'warning'
-                                    }>
-                                      {user.status || 'pending'}
-                                    </Badge>
-                                  </td>
-                                  <td>
-                                    {typeof user.location === 'object' 
-                                      ? (user.location?.address 
-                                          ? `${user.location.address}, ${user.location.district || ''} ${user.location.state || ''}`.trim() 
-                                          : 'No address')
-                                      : (user.location || 'N/A')}
-                                  </td>
-                                  <td>
-                                    <Button
-                                      variant="outline-primary"
-                                      size="sm"
-                                      className="me-2"
-                                      onClick={() => viewUserDetails(user)}
-                                    >
-                                      View
-                                    </Button>
-                                    <Button
-                                      variant={user.status === 'active' ? 'outline-danger' : 'outline-success'}
-                                      size="sm"
-                                      className="me-2"
-                                      onClick={() => updateUserStatus(user._id, user.status === 'active' ? 'inactive' : 'active')}
-                                    >
-                                      {user.status === 'active' ? 'Deactivate' : 'Activate'}
-                                    </Button>
-                                    <Button
-                                      variant="danger"
-                                      size="sm"
-                                      onClick={() => deleteUser(user._id)}
-                                    >
-                                      Delete
-                                    </Button>
-                                  </td>
-                                </tr>
-                              );
-                            })
-                          ) : (
-                            <tr>
-                              <td colSpan="6" className="text-center">No users found</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </Table>
+                      <tr>
+                        <td colSpan="6" className="text-center">
+                          No users found.
+                        </td>
+                      </tr>
                     )}
-                  </Tab.Pane>
-                  
-                  {/* Products Tab */}
-                  <Tab.Pane eventKey="products" active={activeTab === 'products'}>
-                    <div className="d-flex justify-content-between align-items-center mb-4">
-                      <h4 className="mb-0">Product Management</h4>
-                      <Form.Group className="d-flex">
-                        <Form.Control
-                          type="text"
-                          placeholder="Search products..."
-                          className="me-2"
-                          style={{ width: '200px' }}
-                        />
-                        <Form.Select style={{ width: '150px' }}>
-                          <option value="all">All Status</option>
-                          <option value="pending">Pending</option>
-                          <option value="approved">Approved</option>
-                          <option value="rejected">Rejected</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </div>
-                    
-                    <Table responsive hover>
-                      <thead className="bg-light">
-                        <tr>
-                          <th>ID</th>
-                          <th>Product Name</th>
-                          <th>Farmer</th>
-                          <th>Type</th>
-                          <th>Quantity</th>
-                          <th>Price</th>
-                          <th>Status</th>
-                          <th>Submitted</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {products && products.length > 0 ? (
-                          products.map(product => (
-                            <tr key={product.id}>
-                              <td>#{product.id}</td>
-                              <td>{product.name}</td>
-                              <td>{product.farmer}</td>
-                              <td>{product.type}</td>
-                              <td>{product.quantity}</td>
-                              <td>{product.price}</td>
-                              <td>
-                                <Badge bg={
-                                  product.status === 'approved' ? 'success' : 
-                                  product.status === 'rejected' ? 'danger' : 
-                                  'warning'
-                                }>
-                                  {product.status}
-                                </Badge>
-                              </td>
-                              <td>{product.submittedDate}</td>
-                              <td>
-                                {product.status === 'pending' && (
-                                  <>
-                                    <Button 
-                                      variant="success" 
-                                      size="sm" 
-                                      className="me-1"
-                                      onClick={() => handleProductAction(product, 'approved')}
-                                    >
-                                      <i className="bi bi-check-lg"></i>
-                                    </Button>
-                                    <Button 
-                                      variant="danger" 
-                                      size="sm"
-                                      onClick={() => handleProductAction(product, 'rejected')}
-                                    >
-                                      <i className="bi bi-x-lg"></i>
-                                    </Button>
-                                  </>
-                                )}
-                                {product.status !== 'pending' && (
-                                  <Button 
-                                    variant="primary" 
-                                    size="sm"
-                                    onClick={() => handleProductAction(product, 'pending')}
-                                  >
-                                    <i className="bi bi-arrow-counterclockwise"></i>
-                                  </Button>
-                                )}
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan="9" className="text-center">No products available</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </Table>
-                  </Tab.Pane>
-                  
-                  {/* Bids Tab */}
-                  <Tab.Pane eventKey="bids" active={activeTab === 'bids'}>
-                    <div className="d-flex justify-content-between align-items-center mb-4">
-                      <h4 className="mb-0">Bid Management</h4>
-                      <Form.Group className="d-flex">
-                        <Form.Control
-                          type="text"
-                          placeholder="Search bids..."
-                          className="me-2"
-                          style={{ width: '200px' }}
-                        />
-                        <Form.Select style={{ width: '150px' }}>
-                          <option value="all">All Status</option>
-                          <option value="pending">Pending</option>
-                          <option value="accepted">Accepted</option>
-                          <option value="rejected">Rejected</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </div>
-                    
-                    <Table responsive hover>
-                      <thead className="bg-light">
-                        <tr>
-                          <th>ID</th>
-                          <th>Product</th>
-                          <th>Farmer</th>
-                          <th>Buyer</th>
-                          <th>Bid Amount</th>
-                          <th>Quantity</th>
-                          <th>Status</th>
-                          <th>Date</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {bids && bids.length > 0 ? (
-                          bids.map(bid => (
-                            <tr key={bid.id}>
-                              <td>#{bid.id}</td>
-                              <td>{bid.product}</td>
-                              <td>{bid.farmer}</td>
-                              <td>{bid.buyer}</td>
-                              <td>{bid.bidAmount}</td>
-                              <td>{bid.quantity}</td>
-                              <td>
-                                <Badge bg={
-                                  bid.status === 'accepted' ? 'success' : 
-                                  bid.status === 'rejected' ? 'danger' : 
-                                  'warning'
-                                }>
-                                  {bid.status}
-                                </Badge>
-                              </td>
-                              <td>{bid.date}</td>
-                              <td>
-                                {bid.status === 'pending' && (
-                                  <>
-                                    <Button 
-                                      variant="success" 
-                                      size="sm" 
-                                      className="me-1"
-                                      onClick={() => handleBidAction(bid, 'accepted')}
-                                    >
-                                      <i className="bi bi-check-lg"></i>
-                                    </Button>
-                                    <Button 
-                                      variant="danger" 
-                                      size="sm"
-                                      onClick={() => handleBidAction(bid, 'rejected')}
-                                    >
-                                      <i className="bi bi-x-lg"></i>
-                                    </Button>
-                                  </>
-                                )}
-                                {bid.status !== 'pending' && (
-                                  <Button 
-                                    variant="primary" 
-                                    size="sm"
-                                    onClick={() => handleBidAction(bid, 'pending')}
-                                  >
-                                    <i className="bi bi-arrow-counterclockwise"></i>
-                                  </Button>
-                                )}
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan="9" className="text-center">No bids available</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </Table>
-                  </Tab.Pane>
-                  
-                  {/* Assignments Tab */}
-                  <Tab.Pane eventKey="assignments" active={activeTab === 'assignments'}>
-                    <div className="d-flex justify-content-between align-items-center mb-4">
-                      <h4 className="mb-0">Helper Assignments</h4>
-                      <Form.Group>
-                        <Form.Control
-                          type="text"
-                          placeholder="Search assignments..."
-                          style={{ width: '250px' }}
-                        />
-                      </Form.Group>
-                    </div>
-                    
-                    <Table responsive hover>
-                      <thead className="bg-light">
-                        <tr>
-                          <th>ID</th>
-                          <th>Farmer</th>
-                          <th>Helper</th>
-                          <th>Task</th>
-                          <th>Status</th>
-                          <th>Start Date</th>
-                          <th>End Date</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {assignments && assignments.length > 0 ? (
-                          assignments.map(assignment => (
-                            <tr key={assignment.id}>
-                              <td>#{assignment.id}</td>
-                              <td>{assignment.farmer}</td>
-                              <td>{assignment.helper}</td>
-                              <td>{assignment.task}</td>
-                              <td>
-                                <Badge bg={
-                                  assignment.status === 'active' ? 'success' : 
-                                  assignment.status === 'completed' ? 'info' : 
-                                  'warning'
-                                }>
-                                  {assignment.status}
-                                </Badge>
-                              </td>
-                              <td>{assignment.startDate}</td>
-                              <td>{assignment.endDate}</td>
-                              <td>
-                                <Button 
-                                  variant="primary" 
-                                  size="sm" 
+                  </tbody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </Tab>
+
+        {/* Products Tab */}
+        <Tab eventKey="products" title={<span><i className="fas fa-box me-2"></i>Products</span>}>
+          <div className="tab-content p-3">
+            <h2>Product Management</h2>
+            <div className="mb-3 d-flex flex-wrap gap-2 align-items-center">
+              <Form.Control 
+                type="text" 
+                placeholder="Search products..." 
+                className="w-auto flex-grow-1" 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+              <Form.Select 
+                className="w-auto" 
+                value={filterProductStatus}
+                onChange={e => setFilterProductStatus(e.target.value)}
+              >
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </Form.Select>
+            </div>
+
+            {loading ? (
+              <div className="text-center mt-5">
+                <Spinner animation="border" />
+              </div>
+            ) : (
+              <div className="table-responsive">
+                <Table hover responsive className="table-sm">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Product</th>
+                      <th>Farmer</th>
+                      <th>Type</th>
+                      <th>Quantity</th>
+                      <th>Price</th>
+                      <th>Status</th>
+                      <th>Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProducts.length > 0 ? (
+                      filteredProducts.map(product => (
+                        <tr key={product._id}>
+                          <td>{product._id.substring(0, 6)}...</td>
+                          <td>{product.productName}</td>
+                          <td>{product.farmer?.name || 'Unknown'}</td>
+                          <td>{product.commodityType}</td>
+                          <td>{product.quantity} {product.unit || 'kg'}</td>
+                          <td>₹{product.pricePerUnit}</td>
+                          <td>
+                            <span className={`status-${product.status}`}>
+                              {product.status}
+                            </span>
+                          </td>
+                          <td>{new Date(product.createdAt).toLocaleDateString()}</td>
+                          <td>
+                            <Button
+                              variant="outline-info"
+                              size="sm"
+                              className="me-1"
+                              onClick={() => viewProductDetails(product)}
+                            >
+                              <i className="fas fa-eye"></i> View
+                            </Button>
+                            
+                            {product.status === 'pending' && (
+                              <>
+                                <Button
+                                  variant="outline-success"
+                                  size="sm"
                                   className="me-1"
+                                  onClick={() => handleCommodityAction(product._id, 'approved')}
                                 >
-                                  <i className="bi bi-eye"></i>
+                                  <i className="fas fa-check"></i> Approve
                                 </Button>
-                                {assignment.status === 'active' && (
-                                  <Button 
-                                    variant="success" 
-                                    size="sm"
-                                  >
-                                    <i className="bi bi-check-circle"></i>
-                                  </Button>
-                                )}
-                                {assignment.status === 'pending' && (
-                                  <Button 
-                                    variant="warning" 
-                                    size="sm"
-                                  >
-                                    <i className="bi bi-play-fill"></i>
-                                  </Button>
-                                )}
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan="8" className="text-center">No assignments available</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </Table>
-                  </Tab.Pane>
-                </Tab.Content>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
+                                <Button
+                                  variant="outline-danger"
+                                  size="sm"
+                                  onClick={() => {
+                                    setShowRejectionModal(true);
+                                    setCommodityToReject(product);
+                                  }}
+                                >
+                                  <i className="fas fa-times"></i> Reject
+                                </Button>
+                              </>
+                            )}
+                            
+                            {product.status !== 'pending' && (
+                              <Button
+                                variant="outline-secondary"
+                                size="sm"
+                                onClick={() => handleCommodityAction(product._id, 'pending')}
+                              >
+                                <i className="fas fa-undo"></i> Reset
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="9" className="text-center">
+                          No products found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </Tab>
+
+        {/* Documents Tab */}
+        <Tab eventKey="documents" title={<span><i className="fas fa-file-alt me-2"></i>Documents</span>}>
+          <Card className="border-0 shadow-sm">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h3 className="mb-0">Document Management</h3>
+                <Button variant="success" onClick={() => setShowUploadModal(true)}>
+                  <i className="fas fa-upload me-2"></i> Upload Document
+                </Button>
+              </div>
+              
+              {error && (
+                <Alert variant="danger" onClose={() => setError(null)} dismissible>
+                  {error}
+                </Alert>
+              )}
+              
+              {successMessage && (
+                <Alert variant="success" onClose={() => setSuccessMessage(null)} dismissible>
+                  {successMessage}
+                </Alert>
+              )}
+              
+              <Row className="mb-4">
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Filter by Category</Form.Label>
+                    <Form.Select 
+                      value={selectedDocCategory}
+                      onChange={(e) => setSelectedDocCategory(e.target.value)}
+                    >
+                      {documentCategories.map(category => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={8}>
+                  <Form.Group>
+                    <Form.Label>Search Documents</Form.Label>
+                    <Form.Control
+                      type="text"
+                      placeholder="Search by document name..."
+                      value={documentSearchTerm}
+                      onChange={(e) => setDocumentSearchTerm(e.target.value)}
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+              
+              {filteredDocuments.length === 0 ? (
+                <div className="text-center py-5">
+                  <i className="fas fa-file-alt fs-1 text-muted mb-3"></i>
+                  <p>No documents found matching your criteria.</p>
+                </div>
+              ) : (
+                <Table hover responsive className="align-middle document-table">
+                  <thead className="bg-light">
+                    <tr>
+                      <th style={{ width: '5%' }}>#</th>
+                      <th style={{ width: '40%' }}>Document Name</th>
+                      <th style={{ width: '10%' }}>Type</th>
+                      <th style={{ width: '10%' }}>Size</th>
+                      <th style={{ width: '15%' }}>Uploaded On</th>
+                      <th style={{ width: '10%' }}>Category</th>
+                      <th style={{ width: '10%' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredDocuments.map((doc, index) => (
+                      <tr key={doc.id}>
+                        <td>{index + 1}</td>
+                        <td>
+                          <div className="d-flex align-items-center">
+                            <div className="me-3 fs-4">
+                              {getDocumentIcon(doc.type)}
+                            </div>
+                            <div>
+                              <h6 className="mb-0">{doc.name}</h6>
+                              <small className="text-muted">Uploaded by {doc.uploadedBy}</small>
+                            </div>
+                          </div>
+                        </td>
+                        <td>{doc.type}</td>
+                        <td>{doc.size}</td>
+                        <td>{doc.date}</td>
+                        <td>
+                          <Badge bg="info" className="text-capitalize document-category">
+                            {doc.category}
+                          </Badge>
+                        </td>
+                        <td>
+                          <div className="document-actions">
+                            <Button 
+                              variant="outline-primary" 
+                              size="sm" 
+                              className="me-1"
+                              onClick={() => handleDocumentDownload(doc)}
+                            >
+                              <i className="fas fa-download"></i> Download
+                            </Button>
+                            <Button 
+                              variant="outline-danger" 
+                              size="sm"
+                              onClick={() => handleDeleteDocument(doc.id)}
+                            >
+                              <i className="fas fa-trash"></i> Delete
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              )}
+            </Card.Body>
+          </Card>
+        </Tab>
+      </Tabs>
 
       {/* User Details Modal */}
       <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>User Details</Modal.Title>
+          <Modal.Title>
+            {modalData && 
+             (modalData.userType ? 'User Details' : 
+              modalData.productName ? 'Product Details' : 
+              modalData.bidAmount ? 'Bid Details' : 'Details')}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {modalData && (
-            <div>
-              <Row>
-                <Col md={6}>
-                  <p><strong>Name:</strong> {modalData.name || 'N/A'}</p>
-                  <p><strong>Email:</strong> {modalData.email || 'N/A'}</p>
-                  <p><strong>Phone:</strong> {modalData.phone || 'N/A'}</p>
-                  <p><strong>User Type:</strong> {modalData.userType || 'N/A'}</p>
-                </Col>
-                <Col md={6}>
-                  <p><strong>Status:</strong> {modalData.status || 'Active'}</p>
-                  <p><strong>Location:</strong> {
-                    typeof modalData.location === 'object' 
-                      ? (
-                          <>
-                            {modalData.location?.address ? modalData.location.address : 'No address'}<br/>
-                            {modalData.location?.taluka ? `${modalData.location.taluka}, ` : ''}
-                            {modalData.location?.district ? `${modalData.location.district}, ` : ''}
-                            {modalData.location?.state || ''}
-                            {modalData.location?.pincode ? ` - ${modalData.location.pincode}` : ''}
-                          </>
-                        )
-                      : (modalData.location || 'N/A')
-                  }</p>
-                  <p><strong>Joined:</strong> {modalData.createdAt ? new Date(modalData.createdAt).toLocaleDateString() : 'N/A'}</p>
-                  <p><strong>Last Updated:</strong> {modalData.updatedAt ? new Date(modalData.updatedAt).toLocaleDateString() : 'N/A'}</p>
-                </Col>
-              </Row>
-              {modalData.userType === 'farmer' && (
-                <div className="mt-3">
-                  <h6>Farming Details</h6>
-                  <p><strong>Farm Size:</strong> {modalData.farmSize || 'Not specified'}</p>
-                  <p><strong>Primary Crops:</strong> {modalData.primaryCrops?.join(', ') || 'Not specified'}</p>
+          {modalData && modalData.userType && (
+            <div className="user-details">
+              <p><strong>ID:</strong> {modalData._id}</p>
+              <p><strong>Name:</strong> {modalData.name}</p>
+              <p><strong>Email:</strong> {modalData.email}</p>
+              <p><strong>Phone:</strong> {modalData.phone}</p>
+              <p><strong>Type:</strong> {modalData.userType}</p>
+              <p><strong>Status:</strong> {modalData.status}</p>
+              <p><strong>Location:</strong> {modalData.location?.address || 'N/A'}</p>
+              <p><strong>Admin:</strong> {modalData.isAdmin ? 'Yes' : 'No'}</p>
+              <p><strong>Created At:</strong> {new Date(modalData.createdAt).toLocaleString()}</p>
+              <div className="mt-3">
+                <Button variant={modalData.status === 'active' ? 'warning' : 'success'} 
+                  onClick={() => updateUserStatus(modalData._id, modalData.status === 'active' ? 'inactive' : 'active')}>
+                  {modalData.status === 'active' ? 'Deactivate' : 'Activate'}
+                </Button>{' '}
+                <Button variant="danger" onClick={() => deleteUser(modalData._id)}>
+                  Delete User
+                </Button>
+              </div>
+            </div>
+          )}
+          {modalData && modalData.productName && (
+            <div className="product-details">
+              <p><strong>ID:</strong> {modalData._id}</p>
+              <p><strong>Product Name:</strong> {modalData.productName}</p>
+              <p><strong>Farmer:</strong> {modalData.farmer?.name || 'N/A'}</p>
+              <p><strong>Type:</strong> {modalData.commodityType}</p>
+              <p><strong>Quantity:</strong> {modalData.quantity} {modalData.unit || 'kg'}</p>
+              <p><strong>Price:</strong> ₹{modalData.pricePerUnit}</p>
+              <p><strong>Status:</strong> <span className={`status-${modalData.status}`}>{modalData.status}</span></p>
+              <p><strong>Description:</strong> {modalData.description}</p>
+              {modalData.rejectionReason && (
+                <p><strong>Rejection Reason:</strong> {modalData.rejectionReason}</p>
+              )}
+              <p><strong>Submitted:</strong> {new Date(modalData.createdAt).toLocaleString()}</p>
+              {modalData.images && modalData.images.length > 0 && (
+                <div className="product-images">
+                  <p><strong>Images:</strong></p>
+                  <div className="image-gallery">
+                    {modalData.images.map((image, index) => (
+                      <img 
+                        key={index} 
+                        src={image.startsWith('http') ? image : `/uploads/${image}`}
+                        alt={`Product ${index + 1}`} 
+                        className="product-image"
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
+              <div className="mt-3">
+                {modalData.status === 'pending' && (
+                  <>
+                    <Button 
+                      variant="success" 
+                      onClick={() => handleCommodityAction(modalData._id, 'approved')}
+                    >
+                      Approve
+                    </Button>{' '}
+                    <Button 
+                      variant="danger" 
+                      onClick={() => {
+                        setShowRejectionModal(true);
+                        setCommodityToReject(modalData);
+                      }}
+                    >
+                      Reject
+                    </Button>
+                  </>
+                )}
+                {modalData.status !== 'pending' && (
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => handleCommodityAction(modalData._id, 'pending')}
+                  >
+                    Revert to Pending
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </Modal.Body>
+      </Modal>
+
+      {/* Rejection Reason Modal */}
+      <Modal show={showRejectionModal} onHide={() => setShowRejectionModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Rejection Reason</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group>
+              <Form.Label>Please provide a reason for rejection:</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                required
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
-            Close
+          <Button variant="secondary" onClick={() => setShowRejectionModal(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="danger" 
+            onClick={() => {
+              if (rejectionReason.trim() === '') {
+                setError('Please provide a rejection reason');
+                return;
+              }
+              handleCommodityAction(commodityToReject._id, 'rejected', rejectionReason);
+              setShowRejectionModal(false);
+              setRejectionReason('');
+            }}
+          >
+            Confirm Rejection
           </Button>
         </Modal.Footer>
       </Modal>
-    </div>
+
+      {/* Document Upload Modal */}
+      <Modal show={showUploadModal} onHide={() => setShowUploadModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Upload New Document</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Document Name</Form.Label>
+              <Form.Control 
+                type="text" 
+                placeholder="Enter document name"
+                value={newDocument.name}
+                onChange={(e) => setNewDocument({...newDocument, name: e.target.value})}
+              />
+            </Form.Group>
+            
+            <Form.Group className="mb-3">
+              <Form.Label>Category</Form.Label>
+              <Form.Select
+                value={newDocument.category}
+                onChange={(e) => setNewDocument({...newDocument, category: e.target.value})}
+              >
+                <option value="guidelines">Guidelines</option>
+                <option value="standards">Standards</option>
+                <option value="reports">Reports</option>
+                <option value="certification">Certification</option>
+                <option value="pricing">Pricing</option>
+                <option value="other">Other</option>
+              </Form.Select>
+            </Form.Group>
+            
+            <Form.Group className="mb-3">
+              <Form.Label>File</Form.Label>
+              <div 
+                className="upload-dropzone mb-3"
+                onClick={() => document.getElementById('document-file-input').click()}
+              >
+                <i className="fas fa-cloud-upload-alt fs-1 text-primary mb-2"></i>
+                <p className="mb-0">Drag & drop your file here or click to browse</p>
+                <small className="text-muted">Supported formats: PDF, Word, Excel, Images</small>
+              </div>
+              <Form.Control 
+                type="file" 
+                id="document-file-input"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setNewDocument({...newDocument, file: e.target.files[0]});
+                  }
+                }}
+              />
+              {newDocument.file && (
+                <div className="border rounded p-2 d-flex align-items-center">
+                  <i className="fas fa-file me-2 text-primary"></i>
+                  <span className="me-auto">{newDocument.file.name}</span>
+                  <Button 
+                    variant="outline-danger" 
+                    size="sm" 
+                    onClick={() => setNewDocument({...newDocument, file: null})}
+                  >
+                    <i className="fas fa-times"></i>
+                  </Button>
+                </div>
+              )}
+              <Form.Text className="text-muted">
+                Upload PDF, Word, Excel, or image files. Maximum size: 10MB
+              </Form.Text>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowUploadModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="success" onClick={handleDocumentUpload}>
+            Upload Document
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </Container>
   );
 };
 

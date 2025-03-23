@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// Create axios instance with default config
+// Create an axios instance
 const api = axios.create({
   baseURL: 'http://localhost:5000',
   headers: {
@@ -8,7 +8,7 @@ const api = axios.create({
   }
 });
 
-// Add request interceptor to add auth token
+// Add a request interceptor to set the authorization header
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -22,11 +22,15 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle errors
+// Add a response interceptor to handle errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   (error) => {
-    if (error.response?.status === 401) {
+    // Handle 401 unauthorized errors
+    if (error.response && error.response.status === 401) {
+      // Clear token and redirect to login
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';

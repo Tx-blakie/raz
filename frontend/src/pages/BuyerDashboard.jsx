@@ -46,12 +46,6 @@ const BuyerDashboard = () => {
     }
   ];
 
-  // Sample cart data
-  const sampleCart = [
-    { id: 1, name: 'Organic Carrots', quantity: 3, price: 50, farmer: 'Ramesh Kumar' },
-    { id: 2, name: 'Fresh Spinach', quantity: 2, price: 30, farmer: 'Sunil Patel' }
-  ];
-
   useEffect(() => {
     // Check authentication
     const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
@@ -67,28 +61,40 @@ const BuyerDashboard = () => {
     
     // Set sample data
     setOrders(sampleOrders);
-    setCart(sampleCart);
+    
+    // Get real cart data from localStorage
+    try {
+      const storedCart = localStorage.getItem('cart');
+      if (storedCart) {
+        setCart(JSON.parse(storedCart));
+      }
+    } catch (error) {
+      console.error('Error loading cart from localStorage:', error);
+    }
   }, [navigate]);
 
   const handleRemoveFromCart = (id) => {
-    setCart(cart.filter(item => item.id !== id));
+    const updatedCart = cart.filter(item => item._id !== id);
+    setCart(updatedCart);
+    localStorage.setItem('cart', JSON.stringify(updatedCart));
   };
 
   const handleUpdateQuantity = (id, newQuantity) => {
     if (newQuantity < 1) return;
     
-    setCart(cart.map(item => 
-      item.id === id ? { ...item, quantity: newQuantity } : item
-    ));
+    const updatedCart = cart.map(item => 
+      item._id === id ? { ...item, quantity: newQuantity } : item
+    );
+    setCart(updatedCart);
+    localStorage.setItem('cart', JSON.stringify(updatedCart));
   };
 
   const getCartTotal = () => {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return cart.reduce((total, item) => total + (item.pricePerUnit * item.quantity), 0);
   };
 
   const handleCheckout = () => {
-    // In a real app, this would process the checkout
-    alert('Checkout functionality would be implemented here');
+    navigate('/cart');
   };
 
   const filteredOrders = orders.filter(order => 
@@ -118,6 +124,47 @@ const BuyerDashboard = () => {
                   </Col>
                   <Col xs="auto">
                     <span className="display-5">🛒</span>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+          </motion.div>
+        </Col>
+      </Row>
+
+      {/* Marketplace Access Card */}
+      <Row className="mb-4">
+        <Col>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <Card className="border-0 shadow-sm">
+              <Card.Body className="p-0">
+                <Row className="g-0">
+                  <Col md={8} className="p-4">
+                    <h3 className="mb-3">Browse Approved Products</h3>
+                    <p className="text-muted">
+                      Explore our marketplace of fresh, high-quality agricultural products approved by our team.
+                      Find the best deals from local farmers and place your orders directly.
+                    </p>
+                    <Button 
+                      variant="success" 
+                      size="lg" 
+                      className="mt-2"
+                      onClick={() => navigate('/buyer-marketplace')}
+                    >
+                      <i className="fas fa-store me-2"></i>
+                      Go to Marketplace
+                    </Button>
+                  </Col>
+                  <Col md={4} className="bg-light p-4 d-flex flex-column justify-content-center">
+                    <div className="text-center">
+                      <i className="fas fa-leaf fa-5x text-success mb-3"></i>
+                      <h4>Fresh Produce</h4>
+                      <p className="mb-0">Direct from farmers</p>
+                    </div>
                   </Col>
                 </Row>
               </Card.Body>
@@ -182,7 +229,14 @@ const BuyerDashboard = () => {
                   <small className="text-muted">items</small>
                 </div>
                 <p className="text-primary mt-2 mb-0">
-                  <i className="bi bi-basket"></i> Ready for checkout
+                  <Button 
+                    variant="link" 
+                    className="p-0 text-decoration-none" 
+                    onClick={() => navigate('/cart')}
+                  >
+                    <i className="bi bi-basket me-1"></i>
+                    View cart
+                  </Button>
                 </p>
               </Card.Body>
             </Card>
@@ -284,58 +338,51 @@ const BuyerDashboard = () => {
               </Card.Header>
               <Card.Body>
                 {cart.length === 0 ? (
-                  <p className="text-center text-muted py-4">Your cart is empty</p>
+                  <div className="text-center text-muted py-4">
+                    <i className="bi bi-cart3 fs-1 mb-3 d-block"></i>
+                    <p>Your cart is empty</p>
+                    <Button 
+                      variant="primary"
+                      onClick={() => navigate('/buyer-marketplace')}
+                    >
+                      Browse Products
+                    </Button>
+                  </div>
                 ) : (
                   <>
-                    {cart.map(item => (
-                      <div key={item.id} className="mb-3 pb-3 border-bottom">
+                    {cart.slice(0, 3).map(item => (
+                      <div key={item._id} className="mb-3 pb-3 border-bottom">
                         <div className="d-flex justify-content-between align-items-center mb-2">
-                          <h6 className="mb-0">{item.name}</h6>
-                          <span>₹{item.price} per unit</span>
+                          <h6 className="mb-0">{item.productName}</h6>
+                          <span>${item.pricePerUnit} per unit</span>
                         </div>
                         <div className="d-flex justify-content-between align-items-center">
                           <div className="d-flex align-items-center">
-                            <Button 
-                              variant="outline-secondary" 
-                              size="sm"
-                              onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                            >
-                              -
-                            </Button>
-                            <span className="mx-2">{item.quantity}</span>
-                            <Button 
-                              variant="outline-secondary" 
-                              size="sm"
-                              onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                            >
-                              +
-                            </Button>
+                            <span>Qty: {item.quantity}</span>
                           </div>
                           <div>
-                            <span className="me-3">₹{item.price * item.quantity}</span>
-                            <Button 
-                              variant="outline-danger" 
-                              size="sm"
-                              onClick={() => handleRemoveFromCart(item.id)}
-                            >
-                              <i className="bi bi-trash"></i>
-                            </Button>
+                            <span>${(item.pricePerUnit * item.quantity).toFixed(2)}</span>
                           </div>
                         </div>
-                        <small className="text-muted">Farmer: {item.farmer}</small>
+                        <small className="text-muted">Farmer: {item.farmer?.name || 'Unknown'}</small>
                       </div>
                     ))}
                     
+                    {cart.length > 3 && (
+                      <p className="text-center text-muted mb-3">
+                        +{cart.length - 3} more items
+                      </p>
+                    )}
+                    
                     <div className="d-flex justify-content-between align-items-center mb-3">
                       <h5>Total:</h5>
-                      <h5>₹{getCartTotal()}</h5>
+                      <h5>${getCartTotal().toFixed(2)}</h5>
                     </div>
                     
                     <div className="d-grid">
                       <Button 
                         variant="success" 
                         onClick={handleCheckout}
-                        disabled={cart.length === 0}
                       >
                         Proceed to Checkout
                       </Button>

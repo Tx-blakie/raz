@@ -12,59 +12,18 @@ import FarmerDashboard from './pages/FarmerDashboard';
 import BuyerDashboard from './pages/BuyerDashboard';
 import HelperDashboard from './pages/HelperDashboard';
 import AdminDashboard from './admin/AdminDashboard';
+import BuyerMarketplace from './buyer/BuyerMarketplace';
+import Cart from './buyer/Cart';
+import OrderConfirmation from './buyer/OrderConfirmation';
 import AddCommodity from './pages/AddCommodity';
 import MarketPrices from './pages/MarketPrices';
-import PlaceBid from './pages/PlaceBid';
-import ViewBids from './pages/ViewBids';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from './context/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
-
-// Protected route component
-const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('token') !== null;
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-  
-  return children;
-};
-
-// Role-specific route component
-const RoleRoute = ({ children, userType }) => {
-  const isAuthenticated = localStorage.getItem('token') !== null;
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-  
-  // If userType is specified, check if user has that type
-  if (userType && user.userType !== userType) {
-    return <Navigate to="/home" />;
-  }
-  
-  return children;
-};
-
-// Admin-specific route component
-const AdminRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('token') !== null;
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-  
-  if (!user.isAdmin) {
-    return <Navigate to="/home" />;
-  }
-  
-  return children;
-};
+import PrivateRoute from './components/PrivateRoute';
+import AdminRoute from './components/AdminRoute';
 
 function App() {
   const [isReady, setIsReady] = useState(false);
@@ -87,8 +46,8 @@ function App() {
           <Navbar />
           <main className="flex-grow-1">
             <Routes>
-              {/* Redirect root path to login */}
-              <Route path="/" element={<Navigate to="/login" />} />
+              {/* Redirect root path to home */}
+              <Route path="/" element={<Home />} />
               
               {/* Auth routes */}
               <Route path="/login" element={<Login />} />
@@ -98,33 +57,33 @@ function App() {
               <Route 
                 path="/home" 
                 element={
-                  <ProtectedRoute>
+                  <PrivateRoute>
                     <Home />
-                  </ProtectedRoute>
+                  </PrivateRoute>
                 } 
               />
               <Route 
                 path="/about" 
                 element={
-                  <ProtectedRoute>
+                  <PrivateRoute>
                     <About />
-                  </ProtectedRoute>
+                  </PrivateRoute>
                 } 
               />
               <Route 
                 path="/marketplace" 
                 element={
-                  <ProtectedRoute>
+                  <PrivateRoute>
                     <Marketplace />
-                  </ProtectedRoute>
+                  </PrivateRoute>
                 } 
               />
               <Route 
                 path="/services" 
                 element={
-                  <ProtectedRoute>
+                  <PrivateRoute>
                     <Services />
-                  </ProtectedRoute>
+                  </PrivateRoute>
                 } 
               />
               
@@ -132,17 +91,17 @@ function App() {
               <Route 
                 path="/profile" 
                 element={
-                  <ProtectedRoute>
+                  <PrivateRoute>
                     <Profile />
-                  </ProtectedRoute>
+                  </PrivateRoute>
                 } 
               />
               <Route 
                 path="/edit-profile" 
                 element={
-                  <ProtectedRoute>
+                  <PrivateRoute>
                     <EditProfile />
-                  </ProtectedRoute>
+                  </PrivateRoute>
                 } 
               />
               
@@ -150,31 +109,31 @@ function App() {
               <Route 
                 path="/farmer-dashboard" 
                 element={
-                  <RoleRoute userType="farmer">
+                  <PrivateRoute userType="farmer">
                     <FarmerDashboard />
-                  </RoleRoute>
+                  </PrivateRoute>
                 } 
               />
               <Route 
                 path="/buyer-dashboard" 
                 element={
-                  <RoleRoute userType="buyer">
+                  <PrivateRoute userType="buyer">
                     <BuyerDashboard />
-                  </RoleRoute>
+                  </PrivateRoute>
                 } 
               />
               <Route 
                 path="/helper-dashboard" 
                 element={
-                  <RoleRoute userType="helper">
+                  <PrivateRoute userType="helper">
                     <HelperDashboard />
-                  </RoleRoute>
+                  </PrivateRoute>
                 } 
               />
               
               {/* Admin routes */}
               <Route 
-                path="/admin-dashboard" 
+                path="/admin" 
                 element={
                   <AdminRoute>
                     <ErrorBoundary>
@@ -184,40 +143,70 @@ function App() {
                 } 
               />
               
+              <Route 
+                path="/admin/documents" 
+                element={
+                  <AdminRoute>
+                    <ErrorBoundary>
+                      <AdminDashboard activeTab="documents" />
+                    </ErrorBoundary>
+                  </AdminRoute>
+                } 
+              />
+              
               {/* Commodity management routes */}
               <Route 
                 path="/add-commodity" 
                 element={
-                  <RoleRoute userType="farmer">
+                  <PrivateRoute userType="farmer">
                     <AddCommodity />
-                  </RoleRoute>
+                  </PrivateRoute>
                 } 
               />
               <Route 
                 path="/market-prices" 
                 element={
-                  <ProtectedRoute>
+                  <PrivateRoute>
                     <MarketPrices />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/place-bid" 
-                element={
-                  <RoleRoute userType="buyer">
-                    <PlaceBid />
-                  </RoleRoute>
-                } 
-              />
-              <Route 
-                path="/view-bids" 
-                element={
-                  <RoleRoute userType="farmer">
-                    <ViewBids />
-                  </RoleRoute>
+                  </PrivateRoute>
                 } 
               />
               
+              {/* Buyer-specific routes */}
+              <Route 
+                path="/buyer-marketplace" 
+                element={
+                  <PrivateRoute allowedRoles={['buyer']}>
+                    <ErrorBoundary>
+                      <BuyerMarketplace />
+                    </ErrorBoundary>
+                  </PrivateRoute>
+                } 
+              />
+              
+              {/* Cart and Order routes */}
+              <Route 
+                path="/cart" 
+                element={
+                  <PrivateRoute allowedRoles={['buyer']}>
+                    <ErrorBoundary>
+                      <Cart />
+                    </ErrorBoundary>
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
+                path="/order-confirmation" 
+                element={
+                  <PrivateRoute allowedRoles={['buyer']}>
+                    <ErrorBoundary>
+                      <OrderConfirmation />
+                    </ErrorBoundary>
+                  </PrivateRoute>
+                } 
+              />
+              
+              {/* Catch All */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

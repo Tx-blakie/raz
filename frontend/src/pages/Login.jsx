@@ -95,7 +95,7 @@ const Login = () => {
           
           setSuccessMessage('Login successful!');
           setTimeout(() => {
-            navigate(user.isAdmin ? '/admin-dashboard' : '/home');
+            navigate(user.isAdmin ? '/admin' : '/home');
           }, 1000);
         } else {
           throw new Error(result.error);

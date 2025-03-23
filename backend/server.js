@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const adminRoutes = require('./routes/adminRoutes');
 const commodityRoutes = require('./routes/commodityRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 const path = require('path');
 
 // Load environment variables
@@ -56,6 +57,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/admin', adminRoutes);
 app.use('/api/commodities', commodityRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // 404 handler
 app.use((req, res, next) => {

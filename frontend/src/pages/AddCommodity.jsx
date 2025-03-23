@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Form, Button, Card, Alert, Table, Badge } from 'react-bootstrap';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -20,9 +20,9 @@ const AddCommodity = () => {
     inStock: true
   });
   const [errors, setErrors] = useState({});
+  const [imageFile, setImageFile] = useState(null);
   const [myCommodities, setMyCommodities] = useState([]);
   const [loadingCommodities, setLoadingCommodities] = useState(true);
-  const [imageFile, setImageFile] = useState(null);
 
   // Check if user is farmer
   if (!user || user.userType !== 'farmer') {
@@ -38,12 +38,36 @@ const AddCommodity = () => {
   // Load farmer's commodities
   const loadCommodities = async () => {
     try {
-      const response = await axios.get('/api/commodities/farmer');
+      const response = await api.get('/api/commodities/farmer');
       setMyCommodities(response.data);
       setLoadingCommodities(false);
-    } catch (error) {
-      console.error('Error loading commodities:', error);
+    } catch (err) {
+      console.error('Error loading commodities:', err);
       setLoadingCommodities(false);
+    }
+  };
+
+  // Load commodities when component mounts
+  useEffect(() => {
+    loadCommodities();
+  }, []);
+
+  // Format commodity type for display
+  const formatCommodityType = (type) => {
+    return type.charAt(0).toUpperCase() + type.slice(1);
+  };
+
+  // Get badge for approval status
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'approved':
+        return <Badge bg="success">Approved</Badge>;
+      case 'pending':
+        return <Badge bg="warning" text="dark">Pending Approval</Badge>;
+      case 'rejected':
+        return <Badge bg="danger">Rejected</Badge>;
+      default:
+        return <Badge bg="secondary">Unknown</Badge>;
     }
   };
 
@@ -117,74 +141,117 @@ const AddCommodity = () => {
     setLoading(true);
     setMessage({ type: '', text: '' });
 
+    // First validate form
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Validate form data
-      if (!formData.productName || !formData.commodityType || !formData.quantity || !formData.pricePerUnit || !imageFile) {
-        throw new Error('Please fill in all required fields');
-      }
-
-      if (formData.quantity < 10 || formData.quantity > 50) {
-        throw new Error('Quantity must be between 10 and 50 kg');
-      }
-
-      // Upload image first
-      const formDataWithImage = new FormData();
-      formDataWithImage.append('image', imageFile);
+      // Set up image data
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      };
       
-      const imageUploadResponse = await axios.post('/api/upload', formDataWithImage);
-      const imageUrl = imageUploadResponse.data.url;
-
-      // Create commodity
-      const response = await axios.post('/api/commodities', {
-        ...formData,
-        imageUrl,
-        farmer: user._id
-      });
-
-      setMessage({ 
-        type: 'success', 
-        text: 'Commodity added successfully! Waiting for admin approval.' 
-      });
-      setFormData({
-        productName: '',
-        commodityType: '',
-        quantity: '',
-        pricePerUnit: '',
-        description: '',
-        imageUrl: '',
-        inStock: true
-      });
-      setImageFile(null);
-
-      // Redirect after 2 seconds
-      setTimeout(() => {
-        navigate('/farmer-dashboard');
-      }, 2000);
-
+      // Try to upload the image and create the commodity
+      let imageUrl = '';
+      
+      if (imageFile) {
+        try {
+          // Prepare form data for image upload
+          const formDataWithImage = new FormData();
+          formDataWithImage.append('image', imageFile);
+          
+          // Upload image
+          const imageUploadResponse = await api.post('/api/commodities/upload', formDataWithImage, config);
+          
+          if (imageUploadResponse.data && imageUploadResponse.data.url) {
+            imageUrl = imageUploadResponse.data.url;
+            console.log('Image uploaded successfully:', imageUrl);
+          } else {
+            throw new Error('Invalid image upload response');
+          }
+        } catch (uploadError) {
+          console.error('Commodity upload failed:', uploadError);
+          
+          // Try fallback upload endpoint
+          try {
+            const fallbackFormData = new FormData();
+            fallbackFormData.append('file', imageFile);
+            const fallbackResponse = await api.post('/api/upload', fallbackFormData, config);
+            
+            if (fallbackResponse.data && (fallbackResponse.data.filePath || fallbackResponse.data.url)) {
+              imageUrl = fallbackResponse.data.filePath || fallbackResponse.data.url;
+              console.log('Image uploaded via fallback:', imageUrl);
+            } else {
+              throw new Error('Invalid fallback upload response');
+            }
+          } catch (fallbackError) {
+            console.error('All upload attempts failed:', fallbackError);
+            throw new Error('Failed to upload image. Please try again.');
+          }
+        }
+      } else {
+        throw new Error('Please select an image for your product');
+      }
+      
+      if (!imageUrl) {
+        throw new Error('Image upload failed. Please try again.');
+      }
+      
+      // Create commodity with the uploaded image URL
+      const commodityData = {
+        productName: formData.productName,
+        commodityType: formData.commodityType,
+        quantity: formData.quantity,
+        pricePerUnit: formData.pricePerUnit,
+        description: formData.description,
+        imageUrl: imageUrl,
+        inStock: formData.inStock,
+        unit: 'kg'
+      };
+      
+      console.log('Submitting commodity data:', commodityData);
+      
+      try {
+        const response = await api.post('/api/commodities', commodityData);
+        console.log('Commodity created successfully:', response.data);
+        
+        // Handle success
+        setMessage({ 
+          type: 'success', 
+          text: 'Commodity added successfully! Waiting for admin approval.' 
+        });
+        
+        // Reset form
+        setFormData({
+          productName: '',
+          commodityType: '',
+          quantity: '',
+          pricePerUnit: '',
+          description: '',
+          imageUrl: '',
+          inStock: true
+        });
+        setImageFile(null);
+        
+        // Refresh the commodities list
+        loadCommodities();
+      } catch (commodityError) {
+        console.error('Failed to create commodity:', commodityError);
+        console.error('Error details:', commodityError.response?.data || commodityError.message);
+        throw new Error(`Failed to create commodity: ${commodityError.response?.data?.message || commodityError.message}`);
+      }
     } catch (err) {
       console.error('Submission error:', err);
-      setMessage({ type: 'danger', text: err.response?.data?.message || err.message });
+      setMessage({ 
+        type: 'danger', 
+        text: err.response?.data?.message || err.message 
+      });
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Format commodity type for display
-  const formatCommodityType = (type) => {
-    return type.charAt(0).toUpperCase() + type.slice(1);
-  };
-
-  // Get badge for approval status
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'approved':
-        return <Badge bg="success">Approved</Badge>;
-      case 'pending':
-        return <Badge bg="warning" text="dark">Pending Approval</Badge>;
-      case 'rejected':
-        return <Badge bg="danger">Rejected</Badge>;
-      default:
-        return <Badge bg="secondary">Unknown</Badge>;
     }
   };
 
@@ -431,27 +498,27 @@ const AddCommodity = () => {
                             <td>{formatCommodityType(commodity.commodityType)}</td>
                             <td>{commodity.quantity}</td>
                             <td>₹{commodity.pricePerUnit}</td>
-                            <td>{new Date(commodity.dateAdded).toLocaleDateString()}</td>
-                            <td>{getStatusBadge(commodity.approvalStatus)}</td>
+                            <td>{new Date(commodity.createdAt || commodity.dateAdded).toLocaleDateString()}</td>
+                            <td>{getStatusBadge(commodity.approvalStatus || commodity.status)}</td>
                             <td>
                               <div className="d-flex gap-2">
                                 <Button 
                                   variant="outline-primary" 
                                   size="sm"
                                   title="Edit commodity"
-                                  disabled={commodity.approvalStatus === 'approved'}
+                                  disabled={(commodity.approvalStatus || commodity.status) === 'approved'}
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-pencil" viewBox="0 0 16 16">
                                     <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
                                   </svg>
                                 </Button>
                                 <Button 
-                                  variant={commodity.inStock ? 'outline-danger' : 'outline-success'} 
+                                  variant={(commodity.inStock) ? 'outline-danger' : 'outline-success'} 
                                   size="sm"
-                                  title={commodity.inStock ? 'Mark as out of stock' : 'Mark as in stock'}
-                                  disabled={commodity.approvalStatus !== 'approved'}
+                                  title={(commodity.inStock) ? 'Mark as out of stock' : 'Mark as in stock'}
+                                  disabled={(commodity.approvalStatus || commodity.status) !== 'approved'}
                                 >
-                                  {commodity.inStock ? (
+                                  {(commodity.inStock) ? (
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-toggle-on" viewBox="0 0 16 16">
                                       <path d="M5 3a5 5 0 0 0 0 10h6a5 5 0 0 0 0-10H5zm6 9a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/>
                                     </svg>
@@ -462,7 +529,7 @@ const AddCommodity = () => {
                                   )}
                                 </Button>
                               </div>
-                              {commodity.approvalStatus === 'rejected' && commodity.rejectionReason && (
+                              {(commodity.approvalStatus === 'rejected' || commodity.status === 'rejected') && commodity.rejectionReason && (
                                 <div className="mt-2">
                                   <small className="text-danger">
                                     <strong>Reason:</strong> {commodity.rejectionReason}

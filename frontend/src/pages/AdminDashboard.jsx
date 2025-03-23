@@ -365,7 +365,7 @@ const AdminDashboard = () => {
                                                                     onClick={() => {
                                                                         setSelectedItem(commodity);
                                                                         setShowModal(true);
-                                                                    }}
+                                                                    }}  
                                                                 >
                                                                     Reject
                                                                 </Button>

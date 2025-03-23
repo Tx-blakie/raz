@@ -1,0 +1,342 @@
+/* Admin Dashboard Styles */
+
+/* Tab navigation style */
+.nav-tabs {
+  border-bottom: 1px solid #dee2e6;
+  margin-bottom: 1rem;
+}
+
+.nav-tabs .nav-link {
+  color: #6c757d;
+  border: none;
+  font-weight: 500;
+  padding: 0.75rem 1rem;
+}
+
+.nav-tabs .nav-link.active {
+  color: #198754;
+  border-bottom: 2px solid #198754;
+  background: transparent;
+}
+
+/* Status colors */
+.status-pending {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.status-approved {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.status-rejected {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.status-active {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.status-inactive {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+/* Table styles */
+.table-responsive {
+  margin-bottom: 1.5rem;
+}
+
+.table th {
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+/* Product image gallery */
+.product-images {
+  margin-top: 1rem;
+}
+
+.image-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.product-image {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 0.25rem;
+  border: 1px solid #dee2e6;
+}
+
+/* User type styling */
+.status-farmer {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.status-buyer {
+  background-color: #cce5ff;
+  color: #004085;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.status-helper {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.tab-content {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Status badges */
+.status-active {
+  color: #198754;
+  font-weight: 500;
+}
+
+.status-inactive {
+  color: #dc3545;
+  font-weight: 500;
+}
+
+.status-pending {
+  color: #ffc107;
+  font-weight: 500;
+}
+
+.status-approved {
+  color: #198754;
+  font-weight: 500;
+}
+
+.status-rejected {
+  color: #dc3545;
+  font-weight: 500;
+}
+
+.status-farmer, .status-buyer, .status-helper {
+  font-weight: 500;
+}
+
+.status-farmer {
+  color: #198754;
+}
+
+.status-buyer {
+  color: #0d6efd;
+}
+
+.status-helper {
+  color: #6f42c1;
+}
+
+/* Fix for button text visibility */
+.btn-outline-success, 
+.btn-outline-danger, 
+.btn-outline-warning, 
+.btn-outline-info,
+.btn-outline-secondary {
+  color: inherit;
+  text-decoration: none;
+}
+
+.btn-outline-success {
+  color: #198754;
+}
+
+.btn-outline-danger {
+  color: #dc3545;
+}
+
+.btn-outline-warning {
+  color: #ffc107;
+}
+
+.btn-outline-info {
+  color: #0dcaf0;
+}
+
+.btn-outline-secondary {
+  color: #6c757d;
+}
+
+/* Fix for small buttons with text */
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* Image gallery styles */
+.image-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.product-image {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+/* User stats card styles */
+.stats-card {
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  transition: transform 0.3s;
+}
+
+.stats-card:hover {
+  transform: translateY(-5px);
+}
+
+.stats-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+}
+
+/* Table row hover effect */
+.table-hover tbody tr:hover {
+  background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Modal custom styles */
+.modal-body .product-details,
+.modal-body .user-details {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+/* Custom scrollbar */
+.modal-body .product-details::-webkit-scrollbar,
+.modal-body .user-details::-webkit-scrollbar {
+  width: 5px;
+}
+
+.modal-body .product-details::-webkit-scrollbar-track,
+.modal-body .user-details::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.modal-body .product-details::-webkit-scrollbar-thumb,
+.modal-body .user-details::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.modal-body .product-details::-webkit-scrollbar-thumb:hover,
+.modal-body .user-details::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Document section styles */
+.document-card {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.document-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.document-icon {
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.document-table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.document-table tbody tr:hover {
+  background-color: rgba(13, 110, 253, 0.05);
+}
+
+.document-category {
+  text-transform: capitalize;
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.document-actions {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.document-table tbody tr:hover .document-actions {
+  opacity: 1;
+}
+
+/* Drag and drop upload zone */
+.upload-dropzone {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.upload-dropzone:hover,
+.upload-dropzone.active {
+  border-color: #0d6efd;
+  background-color: rgba(13, 110, 253, 0.05);
+} 

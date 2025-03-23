@@ -9,7 +9,7 @@ const commoditySchema = new mongoose.Schema({
     commodityType: {
         type: String,
         required: true,
-        enum: ['vegetables', 'fruits', 'grains', 'dairy', 'other']
+        enum: ['vegetables', 'fruits', 'grains', 'pulses', 'spices', 'dairy', 'other']
     },
     quantity: {
         type: Number,
@@ -45,6 +45,10 @@ const commoditySchema = new mongoose.Schema({
     inStock: {
         type: Boolean,
         default: true
+    },
+    unit: {
+        type: String,
+        default: 'kg'
     }
 }, {
     timestamps: true

@@ -218,61 +218,127 @@ const Home = () => {
                 </Col>
               )}
 
-              <Col md={user.userType === 'farmer' || user.userType === 'helper' ? 4 : 6}>
-                <motion.div 
-                  whileHover={{ y: -10 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Card className="h-100 border-0 shadow-sm text-center">
-                    <Card.Body className="p-4">
-                      <div className="bg-primary text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{ width: "80px", height: "80px" }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" className="bi bi-graph-up-arrow" viewBox="0 0 16 16">
-                          <path fillRule="evenodd" d="M0 0h1v15h15v1H0V0Zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5Z"/>
-                        </svg>
-                      </div>
-                      <Card.Title className="fs-4 mb-3">Market Prices</Card.Title>
-                      <Card.Text>
-                        View current market prices for various agricultural commodities
-                      </Card.Text>
-                      <Button 
-                        as={Link} 
-                        to="/market-prices" 
-                        variant="primary"
-                        className="mt-3"
-                      >
-                        View Prices
-                      </Button>
-                    </Card.Body>
-                  </Card>
-                </motion.div>
-              </Col>
-
-              {user.userType !== 'helper' && (
-                <Col md={user.userType === 'farmer' ? 4 : 6}>
+              {/* Buyer Marketplace */}
+              {user.userType === 'buyer' && (
+                <Col md={4}>
                   <motion.div 
                     whileHover={{ y: -10 }}
                     whileTap={{ scale: 0.95 }}
                   >
                     <Card className="h-100 border-0 shadow-sm text-center">
                       <Card.Body className="p-4">
-                        <div className="bg-warning text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{ width: "80px", height: "80px" }}>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" className="bi bi-currency-exchange" viewBox="0 0 16 16">
-                            <path d="M0 5a5.002 5.002 0 0 0 4.027 4.905 6.46 6.46 0 0 1 .544-2.073C3.695 7.536 3.132 6.864 3 5.91h-.5v-.426h.466V5.05c0-.046 0-.093.004-.135H2.5v-.427h.511C3.236 3.24 4.213 2.5 5.681 2.5c.316 0 .59.031.819.085v.733a3.46 3.46 0 0 0-.815-.082c-.919 0-1.538.466-1.734 1.252h1.917v.427h-1.98c-.003.046-.003.097-.003.147v.422h1.983v.427H3.93c.118.602.468 1.03 1.005 1.229a6.5 6.5 0 0 1 4.97-3.113A5.002 5.002 0 0 0 0 5zm16 5.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0zm-7.75 1.322c.069.835.746 1.485 1.964 1.562V14h.54v-.62c1.259-.086 1.996-.74 1.996-1.69 0-.865-.563-1.31-1.57-1.54l-.426-.1V8.374c.54.06.884.347.966.745h.948c-.07-.804-.779-1.433-1.914-1.502V7h-.54v.629c-1.076.103-1.808.732-1.808 1.622 0 .787.544 1.288 1.45 1.493l.358.085v1.78c-.554-.08-.92-.376-1.003-.787H8.25zm1.96-1.895c-.532-.12-.82-.364-.82-.732 0-.41.311-.719.824-.809v1.54h-.005zm.622 1.044c.645.145.943.38.943.796 0 .474-.37.8-1.02.86v-1.674l.077.018z"/>
+                        <div className="bg-success text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{ width: "80px", height: "80px" }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" className="bi bi-shop" viewBox="0 0 16 16">
+                            <path d="M2.97 1.35A1 1 0 0 1 3.73 1h8.54a1 1 0 0 1 .76.35l2.609 3.044A1.5 1.5 0 0 1 16 5.37v.255a2.375 2.375 0 0 1-4.25 1.458A2.371 2.371 0 0 1 9.875 8 2.37 2.37 0 0 1 8 7.083 2.37 2.37 0 0 1 6.125 8a2.37 2.37 0 0 1-1.875-.917A2.375 2.375 0 0 1 0 5.625V5.37a1.5 1.5 0 0 1 .361-.976l2.61-3.045zm1.78 4.275a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 1 0 2.75 0V5.37a.5.5 0 0 0-.12-.325L12.27 2H3.73L1.12 5.045A.5.5 0 0 0 1 5.37v.255a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0zM1.5 8.5A.5.5 0 0 1 2 9v6h1v-5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v5h6V9a.5.5 0 0 1 1 0v6h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1V9a.5.5 0 0 1 .5-.5zM4 15h3v-5H4v5zm5-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-3zm3 0h-2v3h2v-3z"/>
                           </svg>
                         </div>
-                        <Card.Title className="fs-4 mb-3">{user.userType === 'buyer' ? 'Place Bid' : 'View Bids'}</Card.Title>
+                        <Card.Title className="fs-4 mb-3">Buyer Marketplace</Card.Title>
                         <Card.Text>
-                          {user.userType === 'buyer' 
-                            ? 'Place bids on available commodities from verified farmers' 
-                            : 'View and manage bids on your commodities'}
+                          Browse and purchase fresh produce directly from local farmers
                         </Card.Text>
                         <Button 
                           as={Link} 
-                          to={user.userType === 'buyer' ? '/place-bid' : '/view-bids'} 
-                          variant="warning"
-                          className="mt-3 text-white"
+                          to="/buyer-marketplace" 
+                          variant="success"
+                          className="mt-3"
                         >
-                          {user.userType === 'buyer' ? 'Place Bid' : 'View Bids'}
+                          Go to Marketplace
+                        </Button>
+                      </Card.Body>
+                    </Card>
+                  </motion.div>
+                </Col>
+              )}
+
+              {/* Cart */}
+              {user.userType === 'buyer' && (
+                <Col md={4}>
+                  <motion.div 
+                    whileHover={{ y: -10 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Card className="h-100 border-0 shadow-sm text-center">
+                      <Card.Body className="p-4">
+                        <div className="bg-primary text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{ width: "80px", height: "80px" }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" className="bi bi-cart-check" viewBox="0 0 16 16">
+                            <path d="M11.354 6.354a.5.5 0 0 0-.708-.708L8 8.293 6.854 7.146a.5.5 0 1 0-.708.708l1.5 1.5a.5.5 0 0 0 .708 0l3-3z"/>
+                            <path d="M.5 1a.5.5 0 0 0 0 1h1.11l.401 1.607 1.498 7.985A.5.5 0 0 0 4 12h1a2 2 0 1 0 0 4 2 2 0 0 0 0-4h7a2 2 0 1 0 0 4 2 2 0 0 0 0-4h1a.5.5 0 0 0 .491-.408l1.5-8A.5.5 0 0 0 14.5 3H2.89l-.405-1.621A.5.5 0 0 0 2 1H.5zm3.915 10L3.102 4h10.796l-1.313 7h-8.17zM6 14a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm7 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                          </svg>
+                        </div>
+                        <Card.Title className="fs-4 mb-3">Your Cart</Card.Title>
+                        <Card.Text>
+                          View your cart and complete your purchase of selected products
+                        </Card.Text>
+                        <Button 
+                          as={Link} 
+                          to="/cart" 
+                          variant="primary"
+                          className="mt-3"
+                        >
+                          View Cart
+                        </Button>
+                      </Card.Body>
+                    </Card>
+                  </motion.div>
+                </Col>
+              )}
+
+              {(user.userType === 'buyer' || user.userType === 'farmer') && (
+                <Col md={4}>
+                  <motion.div 
+                    whileHover={{ y: -10 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Card className="h-100 border-0 shadow-sm text-center">
+                      <Card.Body className="p-4">
+                        <div className="bg-primary text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{ width: "80px", height: "80px" }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" className="bi bi-graph-up-arrow" viewBox="0 0 16 16">
+                            <path fillRule="evenodd" d="M0 0h1v15h15v1H0V0Zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5Z"/>
+                          </svg>
+                        </div>
+                        <Card.Title className="fs-4 mb-3">Market Prices</Card.Title>
+                        <Card.Text>
+                          Check current market prices and trends for agricultural products
+                        </Card.Text>
+                        <Button 
+                          as={Link} 
+                          to="/market-prices" 
+                          variant="primary"
+                          className="mt-3"
+                        >
+                          View Prices
+                        </Button>
+                      </Card.Body>
+                    </Card>
+                  </motion.div>
+                </Col>
+              )}
+
+              {user.userType !== 'helper' && (
+                <Col md={4}>
+                  <motion.div 
+                    whileHover={{ y: -10 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Card className="h-100 border-0 shadow-sm text-center">
+                      <Card.Body className="p-4">
+                        <div className="bg-danger text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{ width: "80px", height: "80px" }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" className="bi bi-person-circle" viewBox="0 0 16 16">
+                            <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+                            <path fillRule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
+                          </svg>
+                        </div>
+                        <Card.Title className="fs-4 mb-3">Profile</Card.Title>
+                        <Card.Text>
+                          Update your profile information and preferences
+                        </Card.Text>
+                        <Button 
+                          as={Link} 
+                          to="/profile" 
+                          variant="danger"
+                          className="mt-3"
+                        >
+                          My Profile
                         </Button>
                       </Card.Body>
                     </Card>

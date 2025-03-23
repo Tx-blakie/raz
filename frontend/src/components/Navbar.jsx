@@ -87,6 +87,19 @@ const Navbar = () => {
                 <NavLink to="/services" onClick={() => setExpanded(false)}>Services</NavLink>
                 <NavLink to="/about" onClick={() => setExpanded(false)}>About</NavLink>
                 
+                {/* Buyer-specific links */}
+                {user && user.userType === 'buyer' && (
+                  <>
+                    <NavLink to="/buyer-marketplace" onClick={() => setExpanded(false)}>
+                      Buyer Marketplace
+                    </NavLink>
+                    <NavLink to="/cart" onClick={() => setExpanded(false)}>
+                      <i className="bi bi-cart3 me-1"></i>
+                      Cart
+                    </NavLink>
+                  </>
+                )}
+                
                 {/* Show dashboard link based on user type */}
                 {user && (
                   <NavLink 
@@ -139,6 +152,29 @@ const Navbar = () => {
                         <i className="bi bi-pencil-square me-2"></i>
                         Edit Profile
                       </Dropdown.Item>
+                      
+                      {/* Buyer-specific menu items */}
+                      {user?.userType === 'buyer' && (
+                        <>
+                          <Dropdown.Item 
+                            as={Link} 
+                            to="/buyer-marketplace"
+                            onClick={() => setExpanded(false)}
+                          >
+                            <i className="bi bi-shop me-2"></i>
+                            Buyer Marketplace
+                          </Dropdown.Item>
+                          <Dropdown.Item 
+                            as={Link} 
+                            to="/cart"
+                            onClick={() => setExpanded(false)}
+                          >
+                            <i className="bi bi-cart3 me-2"></i>
+                            Shopping Cart
+                          </Dropdown.Item>
+                        </>
+                      )}
+                      
                       <Dropdown.Item 
                         as={Link} 
                         to={`/${user?.userType}-dashboard`}

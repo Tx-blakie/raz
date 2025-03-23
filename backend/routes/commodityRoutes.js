@@ -4,14 +4,24 @@ const Commodity = require('../models/commodityModel');
 const { protect } = require('../middleware/authMiddleware');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+// Create uploads directory if it doesn't exist
+const uploadDir = path.join(__dirname, '../../uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+    console.log('Uploads directory created at:', uploadDir);
+}
 
 // Configure multer for image upload
 const storage = multer.diskStorage({
     destination: function(req, file, cb) {
-        cb(null, 'uploads/');
+        cb(null, uploadDir);
     },
     filename: function(req, file, cb) {
-        cb(null, Date.now() + path.extname(file.originalname));
+        // Generate unique filename with timestamp and preserve extension
+        const uniqueFilename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
+        cb(null, uniqueFilename);
     }
 });
 
@@ -21,14 +31,14 @@ const upload = multer({
         fileSize: 5 * 1024 * 1024 // 5MB limit
     },
     fileFilter: function(req, file, cb) {
-        const filetypes = /jpeg|jpg|png/;
+        const filetypes = /jpeg|jpg|png|webp/;
         const mimetype = filetypes.test(file.mimetype);
         const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
         
         if (mimetype && extname) {
             return cb(null, true);
         }
-        cb(new Error('Only .png, .jpg and .jpeg format allowed!'));
+        cb(new Error('Only .png, .jpg, .webp and .jpeg format allowed!'));
     }
 });
 
@@ -38,10 +48,18 @@ router.post('/upload', protect, upload.single('image'), (req, res) => {
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded' });
         }
+        
+        console.log('File uploaded successfully:', req.file);
+        
+        // Return the URL relative to the server
+        const imageUrl = `/uploads/${req.file.filename}`;
         res.json({
-            url: `/uploads/${req.file.filename}`
+            url: imageUrl,
+            filename: req.file.filename,
+            message: 'File uploaded successfully'
         });
     } catch (error) {
+        console.error('Error uploading file:', error);
         res.status(500).json({ message: error.message });
     }
 });
@@ -53,15 +71,32 @@ router.post('/', protect, async (req, res) => {
             return res.status(403).json({ message: 'Only farmers can add commodities' });
         }
 
+        console.log('Creating commodity with data:', req.body);
+        
+        // Ensure required fields are present
+        if (!req.body.productName || !req.body.commodityType || !req.body.quantity || 
+            !req.body.pricePerUnit || !req.body.description || !req.body.imageUrl) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+
         const commodity = new Commodity({
-            ...req.body,
+            productName: req.body.productName,
+            commodityType: req.body.commodityType,
+            quantity: req.body.quantity,
+            pricePerUnit: req.body.pricePerUnit,
+            description: req.body.description,
+            imageUrl: req.body.imageUrl,
+            inStock: req.body.inStock !== undefined ? req.body.inStock : true,
             farmer: req.user._id,
             status: 'pending'
         });
 
-        await commodity.save();
-        res.status(201).json(commodity);
+        const savedCommodity = await commodity.save();
+        console.log('Commodity saved successfully:', savedCommodity);
+        
+        res.status(201).json(savedCommodity);
     } catch (error) {
+        console.error('Error creating commodity:', error);
         res.status(400).json({ message: error.message });
     }
 });

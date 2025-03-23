@@ -76,18 +76,26 @@ router.get('/commodities', async (req, res) => {
 });
 
 // Update commodity status
-router.patch('/commodities/:commodityId', async (req, res) => {
+router.patch('/commodities/:commodityId/status', async (req, res) => {
     try {
         const { commodityId } = req.params;
         const { status, rejectionReason } = req.body;
+        
+        const updateData = { status };
+        if (status === 'rejected' && rejectionReason) {
+            updateData.rejectionReason = rejectionReason;
+        }
+        
         const commodity = await Commodity.findByIdAndUpdate(
             commodityId,
-            { 
-                status,
-                rejectionReason: status === 'rejected' ? rejectionReason : undefined 
-            },
+            updateData,
             { new: true }
         ).populate('farmer', 'name email phone');
+        
+        if (!commodity) {
+            return res.status(404).json({ message: 'Commodity not found' });
+        }
+        
         res.json(commodity);
     } catch (error) {
         res.status(500).json({ message: error.message });
